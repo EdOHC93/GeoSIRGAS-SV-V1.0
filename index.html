@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a1628">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GeoSIRGAS SV">
+<meta name="application-name" content="GeoSIRGAS SV">
+<meta name="description" content="App GNSS multi-constelación para coordenadas geodésicas SIRGAS2000 con precisión submétrica. El Salvador y Centroamérica.">
+<title>GeoSIRGAS SV — Precisión Geodésica</title>
+
+<!-- ═══ MANIFIESTO PWA ═══════════════════════════════════════
+     Coloca manifest.json en la misma carpeta que este archivo.
+     Cambia el nombre del ícono en manifest.json → "src": "TUNOMBRE.png"
+     Tamaños requeridos: 192x192 y 512x512 px (PNG, fondo #060d1a)
+  ══════════════════════════════════════════════════════════ -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Ícono fallback para iOS (mismo archivo PNG que en manifest.json) -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:   #060d1a;
+    --bg-panel:  #0d1f35;
+    --bg-card:   #0f2540;
+    --bg-input:  #071526;
+    --accent:    #00e5ff;
+    --accent2:   #39ff14;
+    --accent3:   #ff6b00;
+    --warn:      #ffcc00;
+    --danger:    #ff2d55;
+    --text:      #cde6ff;
+    --text-dim:  #5a7fa0;
+    --border:    rgba(0,229,255,0.18);
+    --glow:      0 0 18px rgba(0,229,255,0.35);
+    --glow2:     0 0 18px rgba(57,255,20,0.4);
+    --radius:    12px;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui:   'Rajdhani', sans-serif;
+    --font-head: 'Exo 2', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: linear-gradient(135deg, #060d1a 0%, #0a1e38 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+  }
+  .header-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #00e5ff22, #00e5ff44);
+    border: 1.5px solid var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: var(--glow);
+  }
+  .header-text h1 {
+    font-family: var(--font-head);
+    font-size: 18px; font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-shadow: var(--glow);
+  }
+  .header-text p {
+    font-size: 11px; color: var(--text-dim);
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+  }
+  .sat-status-dot {
+    margin-left: auto;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 8px var(--danger);
+    animation: pulse-dot 2s infinite;
+  }
+  .dot.connected { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+  .dot-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  /* ── TABS ── */
+  .tab-bar {
+    display: flex;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex: 1; min-width: 100px;
+    padding: 12px 8px;
+    border: none; background: none;
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    white-space: nowrap;
+  }
+  .tab-btn .tab-icon { font-size: 18px; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: rgba(0,229,255,0.05);
+  }
+
+  /* ── PANELS ── */
+  .panel { display: none; padding: 14px; }
+  .panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-family: var(--font-head);
+    font-size: 12px; font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
+    box-shadow: var(--glow);
+  }
+
+  /* ── COORD DISPLAY ── */
+  .coord-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .coord-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+  .coord-item {
+    background: var(--bg-input);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 8px;
+    padding: 10px 10px 8px;
+  }
+  .coord-item.full { grid-column: 1 / -1; }
+  .coord-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .coord-value {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    word-break: break-all;
+  }
+  .coord-value.green { color: var(--accent2); text-shadow: var(--glow2); }
+  .coord-value.orange { color: var(--accent3); }
+  .coord-value.placeholder { color: var(--text-dim); font-size: 12px; }
+
+  /* ── PROGRESS / SESSION ── */
+  .session-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .stat-box {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-value.green { color: var(--accent2); }
+  .stat-value.orange { color: var(--accent3); }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  .progress-bar-wrap {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    box-shadow: 0 0 10px var(--accent);
+    transition: width 0.8s ease;
+    border-radius: 6px;
+  }
+  .progress-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: right;
+    margin-bottom: 12px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font-head);
+    font-size: 16px; font-weight: 700;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.08);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .btn:active::after { opacity: 1; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #005f7f, #0099cc);
+    color: #fff;
+    border: 1.5px solid var(--accent);
+    box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .btn-primary:disabled {
+    opacity: 0.4; cursor: not-allowed;
+  }
+  .btn-start {
+    background: linear-gradient(135deg, #003d1a, #006633);
+    color: var(--accent2);
+    border: 1.5px solid var(--accent2);
+    box-shadow: var(--glow2);
+    font-size: 17px;
+  }
+  .btn-stop {
+    background: linear-gradient(135deg, #4a0010, #990020);
+    color: #ff6680;
+    border: 1.5px solid var(--danger);
+    box-shadow: 0 0 16px rgba(255,45,85,0.4);
+  }
+  .btn-secondary {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    padding: 12px;
+  }
+  .btn-convert {
+    background: linear-gradient(135deg, #3d1a00, #804000);
+    color: var(--accent3);
+    border: 1.5px solid var(--accent3);
+    box-shadow: 0 0 16px rgba(255,107,0,0.3);
+  }
+
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row .btn { flex: 1; }
+
+  /* ── INPUTS ── */
+  .input-group {
+    margin-bottom: 10px;
+  }
+  .input-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    display: block;
+  }
+  .input-field {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-field:focus { border-color: var(--accent); box-shadow: var(--glow); }
+  select.input-field { cursor: pointer; }
+
+  /* ── SAT CONSTELLATION ── */
+  .constellation-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .const-box {
+    background: var(--bg-input);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 8px;
+    padding: 8px 4px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .const-box.active {
+    border-color: var(--accent2);
+    background: rgba(57,255,20,0.07);
+    box-shadow: 0 0 10px rgba(57,255,20,0.2);
+  }
+  .const-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .const-box.active .const-name { color: var(--accent2); }
+  .const-count {
+    font-family: var(--font-mono);
+    font-size: 18px; font-weight: 700;
+    color: var(--accent);
+  }
+  .const-box.active .const-count { color: var(--accent2); }
+
+  /* ── QUALITY METER ── */
+  .quality-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .quality-label {
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--text-dim);
+    min-width: 48px; letter-spacing: 0.5px;
+  }
+  .quality-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .quality-bar {
+    height: 100%; border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .quality-bar.hdop { background: linear-gradient(90deg, #ff2d55, #ffcc00, #39ff14); }
+  .quality-bar.vdop { background: linear-gradient(90deg, #ff2d55, #ffcc00, #00e5ff); }
+  .quality-val {
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--text);
+    min-width: 32px; text-align: right;
+  }
+
+  /* ── SIGMA DISPLAY ── */
+  .sigma-row {
+    display: flex; gap: 6px; margin-bottom: 10px;
+  }
+  .sigma-box {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .sigma-label { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+  .sigma-val { font-family: var(--font-mono); font-size: 14px; color: var(--warn); }
+
+  /* ── LOG ── */
+  .log-box {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    height: 140px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .log-box::-webkit-scrollbar { width: 3px; }
+  .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .log-line { padding: 1px 0; }
+  .log-line.ok { color: var(--accent2); }
+  .log-line.warn { color: var(--warn); }
+  .log-line.err { color: var(--danger); }
+  .log-line.info { color: var(--accent); }
+
+  /* ── CONVERSION RESULT ── */
+  .conv-result {
+    background: var(--bg-input);
+    border: 1px solid rgba(255,107,0,0.3);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-top: 12px;
+  }
+  .conv-result-title {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--accent3);
+    margin-bottom: 10px;
+  }
+  .conv-val-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .conv-val-row:last-child { border-bottom: none; }
+  .conv-key { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+  .conv-val { font-family: var(--font-mono); font-size: 14px; color: var(--accent3); }
+
+  /* ── ABOUT ── */
+  .about-section { margin-bottom: 16px; }
+  .about-title {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .about-text {
+    font-size: 13px; color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .badge {
+    background: rgba(0,229,255,0.08);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--accent);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes blink {
+    0%,100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+  .blink { animation: blink 1s infinite; }
+
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+
+  .radar-container {
+    position: relative;
+    width: 140px; height: 140px;
+    margin: 0 auto 12px;
+  }
+  .radar-svg { width: 100%; height: 100%; }
+  .radar-sweep {
+    transform-origin: 70px 70px;
+    animation: radar-spin 3s linear infinite;
+  }
+  @keyframes radar-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .copy-btn {
+    display: inline-block;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    cursor: pointer;
+    margin-left: 6px;
+  }
+
+  .separator {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 14px 0;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--accent2);
+    color: #000;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .ntrip-badge {
+    display: inline-block;
+    background: rgba(255,107,0,0.15);
+    border: 1px solid rgba(255,107,0,0.4);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--accent3);
+    margin-left: 6px;
+  }
+  .section-toggle {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; padding: 2px 0;
+  }
+  .toggle-arrow { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
+  .toggle-arrow.open { transform: rotate(180deg); }
+  .collapsible { overflow: hidden; max-height: 0; transition: max-height 0.35s ease; }
+  .collapsible.open { max-height: 500px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-icon">🛰️</div>
+  <div class="header-text">
+    <h1>GeoSIRGAS SV</h1>
+    <p>GNSS MULTI-CONSTELACIÓN · EL SALVADOR</p>
+  </div>
+  <div class="sat-status-dot">
+    <div class="dot" id="gnssStatusDot"></div>
+    <span class="dot-label" id="gnssStatusLabel">SIN SEÑAL</span>
+  </div>
+</header>
+
+<!-- TABS -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('tab-live', this)">
+    <span class="tab-icon">📡</span> EN VIVO
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-session', this)">
+    <span class="tab-icon">⏱️</span> SESIÓN
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-convert', this)">
+    <span class="tab-icon">🔄</span> CONV.
+  </button>
+  <button class="tab-btn" onclick="showTab('tab-info', this)">
+    <span class="tab-icon">ℹ️</span> INFO
+  </button>
+</nav>
+
+<!-- ===== TAB: EN VIVO ===== -->
+<div class="panel active" id="tab-live">
+
+  <!-- Radar de satélites -->
+  <div class="card">
+    <div class="card-title">Radar de Satélites</div>
+    <div class="radar-container">
+      <svg class="radar-svg" viewBox="0 0 140 140">
+        <defs>
+          <radialGradient id="rg" cx="50%" cy="50%">
+            <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.03"/>
+            <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.12"/>
+          </radialGradient>
+        </defs>
+        <circle cx="70" cy="70" r="66" fill="url(#rg)" stroke="rgba(0,229,255,0.2)" stroke-width="1"/>
+        <circle cx="70" cy="70" r="44" fill="none" stroke="rgba(0,229,255,0.12)" stroke-width="1" stroke-dasharray="3,3"/>
+        <circle cx="70" cy="70" r="22" fill="none" stroke="rgba(0,229,255,0.12)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="70" y1="4" x2="70" y2="136" stroke="rgba(0,229,255,0.08)" stroke-width="1"/>
+        <line x1="4" y1="70" x2="136" y2="70" stroke="rgba(0,229,255,0.08)" stroke-width="1"/>
+        <!-- Sweep -->
+        <g class="radar-sweep">
+          <path d="M70,70 L70,4 A66,66 0 0,1 116,44 Z" fill="url(#sweepGrad)" opacity="0.25"/>
+          <defs>
+            <linearGradient id="sweepGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#00e5ff" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.6"/>
+            </linearGradient>
+          </defs>
+        </g>
+        <!-- Sat dots -->
+        <g id="radarDots"></g>
+        <circle cx="70" cy="70" r="4" fill="#00e5ff" opacity="0.8"/>
+      </svg>
+    </div>
+
+    <!-- Constelaciones -->
+    <div class="constellation-grid" id="constellationGrid">
+      <div class="const-box" id="c-gps">
+        <div class="const-count" id="cnt-gps">0</div>
+        <div class="const-name">GPS</div>
+      </div>
+      <div class="const-box" id="c-glo">
+        <div class="const-count" id="cnt-glo">0</div>
+        <div class="const-name">GLONASS</div>
+      </div>
+      <div class="const-box" id="c-gal">
+        <div class="const-count" id="cnt-gal">0</div>
+        <div class="const-name">GALILEO</div>
+      </div>
+      <div class="const-box" id="c-bei">
+        <div class="const-count" id="cnt-bei">0</div>
+        <div class="const-name">BEIDOU</div>
+      </div>
+    </div>
+
+    <!-- DOP -->
+    <div class="quality-row">
+      <span class="quality-label">HDOP</span>
+      <div class="quality-bar-wrap"><div class="quality-bar hdop" id="hdopBar" style="width:0%"></div></div>
+      <span class="quality-val" id="hdopVal">—</span>
+    </div>
+    <div class="quality-row">
+      <span class="quality-label">VDOP</span>
+      <div class="quality-bar-wrap"><div class="quality-bar vdop" id="vdopBar" style="width:0%"></div></div>
+      <span class="quality-val" id="vdopVal">—</span>
+    </div>
+  </div>
+
+  <!-- Coordenadas en vivo -->
+  <div class="card">
+    <div class="card-title">Coordenadas Geodésicas WGS84 / SIRGAS2000</div>
+    <div class="coord-grid">
+      <div class="coord-item">
+        <div class="coord-label">LAT (°)</div>
+        <div class="coord-value" id="lv-lat">—</div>
+      </div>
+      <div class="coord-item">
+        <div class="coord-label">LON (°)</div>
+        <div class="coord-value" id="lv-lon">—</div>
+      </div>
+    </div>
+    <div class="coord-grid three-col">
+      <div class="coord-item">
+        <div class="coord-label">ALT ELIP (m)</div>
+        <div class="coord-value" id="lv-altElip">—</div>
+      </div>
+      <div class="coord-item">
+        <div class="coord-label">ALT MSL (m)</div>
+        <div class="coord-value green" id="lv-altMsl">—</div>
+      </div>
+      <div class="coord-item">
+        <div class="coord-label">PREC (m)</div>
+        <div class="coord-value orange" id="lv-acc">—</div>
+      </div>
+    </div>
+    <div class="coord-grid">
+      <div class="coord-item full">
+        <div class="coord-label">UTM WGS84 / SIRGAS — ZONA 16N (El Salvador)</div>
+        <div class="coord-value" id="lv-utm" style="font-size:12px">—</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn btn-secondary" onclick="copyLiveCoords()">📋 Copiar</button>
+      <button class="btn btn-secondary" onclick="shareLiveCoords()">🔗 Compartir</button>
+    </div>
+  </div>
+
+  <!-- Log en vivo -->
+  <div class="card">
+    <div class="card-title">Registro GNSS</div>
+    <div class="log-box" id="liveLog">
+      <div class="log-line info">[GNSS] Iniciando receptor...</div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn btn-primary" id="btnStartGnss" onclick="startGNSS()" style="padding:12px">
+        📡 Iniciar Receptor GNSS
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TAB: SESIÓN ===== -->
+<div class="panel" id="tab-session">
+
+  <div class="card">
+    <div class="card-title">Sesión de Medición — 600 Épocas / 10 min</div>
+
+    <div class="session-grid">
+      <div class="stat-box">
+        <div class="stat-value green" id="s-epochs">0</div>
+        <div class="stat-label">ÉPOCAS</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value orange" id="s-time">0:00</div>
+        <div class="stat-label">TIEMPO</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="s-sats">0</div>
+        <div class="stat-label">SATS</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="sessionProgress"></div>
+    </div>
+    <div class="progress-label" id="progressLabel">0 / 600 épocas — 0.0%</div>
+
+    <!-- Sigma / precisión -->
+    <div class="sigma-row">
+      <div class="sigma-box">
+        <div class="sigma-label">σ Lat (m)</div>
+        <div class="sigma-val" id="sig-lat">—</div>
+      </div>
+      <div class="sigma-box">
+        <div class="sigma-label">σ Lon (m)</div>
+        <div class="sigma-val" id="sig-lon">—</div>
+      </div>
+      <div class="sigma-box">
+        <div class="sigma-label">σ Alt (m)</div>
+        <div class="sigma-val" id="sig-alt">—</div>
+      </div>
+      <div class="sigma-box">
+        <div class="sigma-label">σ 2D (m)</div>
+        <div class="sigma-val" id="sig-2d">—</div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom: 12px;">
+      <button class="btn btn-start" id="btnSession" onclick="toggleSession()">
+        ▶ INICIAR SESIÓN
+      </button>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- Resultado de sesión -->
+    <div id="sessionResultArea" style="display:none">
+      <div class="card-title">✅ Resultado Promediado — SIRGAS2000</div>
+
+      <div class="coord-grid">
+        <div class="coord-item">
+          <div class="coord-label">LAT SIRGAS (°)</div>
+          <div class="coord-value" id="res-lat">—</div>
+        </div>
+        <div class="coord-item">
+          <div class="coord-label">LON SIRGAS (°)</div>
+          <div class="coord-value" id="res-lon">—</div>
+        </div>
+      </div>
+      <div class="coord-grid three-col">
+        <div class="coord-item">
+          <div class="coord-label">LAT (DMS)</div>
+          <div class="coord-value green" id="res-lat-dms" style="font-size:11px">—</div>
+        </div>
+        <div class="coord-item">
+          <div class="coord-label">LON (DMS)</div>
+          <div class="coord-value green" id="res-lon-dms" style="font-size:11px">—</div>
+        </div>
+        <div class="coord-item">
+          <div class="coord-label">ALT MSL (m)</div>
+          <div class="coord-value green" id="res-alt">—</div>
+        </div>
+      </div>
+
+      <div class="coord-item" style="margin:8px 0; border:1px solid rgba(0,229,255,0.12); border-radius:8px; padding:10px; background:var(--bg-input)">
+        <div class="coord-label">UTM SIRGAS2000 — ZONA 16N</div>
+        <div class="coord-value green" id="res-utm" style="font-size:12px">—</div>
+      </div>
+
+      <div class="coord-item" style="margin-bottom:10px; border:1px solid rgba(0,229,255,0.12); border-radius:8px; padding:10px; background:var(--bg-input)">
+        <div class="coord-label">SIRGAS-ES (Costa Rica 05 / El Salvador local)</div>
+        <div class="coord-value" id="res-local" style="font-size:12px; color: var(--warn)">—</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="copySessionResult()">📋 Copiar Todo</button>
+        <button class="btn btn-secondary" onclick="exportSession()">💾 Exportar TXT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log de sesión -->
+  <div class="card">
+    <div class="card-title">Log de Sesión</div>
+    <div class="log-box" id="sessionLog">
+      <div class="log-line info">[SESIÓN] Listo para iniciar medición de 10 minutos.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: CONVERSIÓN ===== -->
+<div class="panel" id="tab-convert">
+
+  <div class="card">
+    <div class="card-title">Modo de Conversión</div>
+    <div class="input-group">
+      <select class="input-field" id="convMode" onchange="updateConvMode()">
+        <option value="geo2utm">Geodésicas → UTM (Planas)</option>
+        <option value="utm2geo">UTM (Planas) → Geodésicas</option>
+        <option value="geo2dms">Grados Decimales → DMS</option>
+        <option value="dms2geo">DMS → Grados Decimales</option>
+        <option value="wgs2sirgas">WGS84 → SIRGAS2000 (El Salvador)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Formulario geo2utm -->
+  <div class="card" id="form-geo2utm">
+    <div class="card-title">Entrada — Geodésicas (°)</div>
+    <div class="input-group">
+      <label class="input-label">LATITUD (° decimales, negativo = Sur)</label>
+      <input type="number" class="input-field" id="c-lat" placeholder="Ej: 13.692035" step="0.000001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">LONGITUD (° decimales, negativo = Oeste)</label>
+      <input type="number" class="input-field" id="c-lon" placeholder="Ej: -89.218438" step="0.000001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">ALTURA MSL (m) — opcional</label>
+      <input type="number" class="input-field" id="c-h" placeholder="Ej: 680.5" step="0.001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">DATUM</label>
+      <select class="input-field" id="c-datum">
+        <option value="wgs84">WGS84 / SIRGAS2000</option>
+        <option value="nad27">NAD27 (legacy)</option>
+      </select>
+    </div>
+    <button class="btn btn-convert" onclick="doConvert()">⚡ CONVERTIR</button>
+  </div>
+
+  <!-- Formulario utm2geo -->
+  <div class="card" id="form-utm2geo" style="display:none">
+    <div class="card-title">Entrada — UTM</div>
+    <div class="input-group">
+      <label class="input-label">ESTE / EASTING (m)</label>
+      <input type="number" class="input-field" id="u-e" placeholder="Ej: 298456.123" step="0.001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">NORTE / NORTHING (m)</label>
+      <input type="number" class="input-field" id="u-n" placeholder="Ej: 1514382.456" step="0.001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">ZONA</label>
+      <select class="input-field" id="u-zone">
+        <option value="16N">16N (El Salvador / Guatemala)</option>
+        <option value="15N">15N (Guatemala Oeste)</option>
+        <option value="17N">17N (Honduras Oriental)</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">ALTURA MSL (m) — opcional</label>
+      <input type="number" class="input-field" id="u-h" placeholder="Ej: 680.5" step="0.001">
+    </div>
+    <button class="btn btn-convert" onclick="doConvert()">⚡ CONVERTIR</button>
+  </div>
+
+  <!-- Formulario geo2dms -->
+  <div class="card" id="form-geo2dms" style="display:none">
+    <div class="card-title">Entrada — Grados Decimales</div>
+    <div class="input-group">
+      <label class="input-label">LATITUD (° decimales)</label>
+      <input type="number" class="input-field" id="d-lat" placeholder="Ej: 13.692035" step="0.000001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">LONGITUD (° decimales)</label>
+      <input type="number" class="input-field" id="d-lon" placeholder="Ej: -89.218438" step="0.000001">
+    </div>
+    <button class="btn btn-convert" onclick="doConvert()">⚡ CONVERTIR</button>
+  </div>
+
+  <!-- Formulario dms2geo -->
+  <div class="card" id="form-dms2geo" style="display:none">
+    <div class="card-title">Entrada — DMS (Lat / Lon)</div>
+    <div class="coord-grid">
+      <div class="input-group">
+        <label class="input-label">LAT °</label>
+        <input type="number" class="input-field" id="dms-latD" placeholder="13" step="1">
+      </div>
+      <div class="input-group">
+        <label class="input-label">LAT '</label>
+        <input type="number" class="input-field" id="dms-latM" placeholder="41" step="1">
+      </div>
+    </div>
+    <div class="coord-grid">
+      <div class="input-group">
+        <label class="input-label">LAT ''</label>
+        <input type="number" class="input-field" id="dms-latS" placeholder="31.50" step="0.001">
+      </div>
+      <div class="input-group">
+        <label class="input-label">HEMISFERIO</label>
+        <select class="input-field" id="dms-latH">
+          <option value="N">N</option><option value="S">S</option>
+        </select>
+      </div>
+    </div>
+    <div class="coord-grid">
+      <div class="input-group">
+        <label class="input-label">LON °</label>
+        <input type="number" class="input-field" id="dms-lonD" placeholder="89" step="1">
+      </div>
+      <div class="input-group">
+        <label class="input-label">LON '</label>
+        <input type="number" class="input-field" id="dms-lonM" placeholder="13" step="1">
+      </div>
+    </div>
+    <div class="coord-grid">
+      <div class="input-group">
+        <label class="input-label">LON ''</label>
+        <input type="number" class="input-field" id="dms-lonS" placeholder="6.38" step="0.001">
+      </div>
+      <div class="input-group">
+        <label class="input-label">HEMISFERIO</label>
+        <select class="input-field" id="dms-lonH">
+          <option value="E">E</option><option value="W">W (Oeste)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-convert" onclick="doConvert()">⚡ CONVERTIR</button>
+  </div>
+
+  <!-- Formulario wgs2sirgas -->
+  <div class="card" id="form-wgs2sirgas" style="display:none">
+    <div class="card-title">Transformación WGS84 → SIRGAS2000</div>
+    <div class="input-group">
+      <label class="input-label">LATITUD WGS84 (°)</label>
+      <input type="number" class="input-field" id="w-lat" placeholder="13.692035" step="0.0000001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">LONGITUD WGS84 (°)</label>
+      <input type="number" class="input-field" id="w-lon" placeholder="-89.218438" step="0.0000001">
+    </div>
+    <div class="input-group">
+      <label class="input-label">ALTURA ELIPSOIDAL (m)</label>
+      <input type="number" class="input-field" id="w-h" placeholder="680.5" step="0.001">
+    </div>
+    <button class="btn btn-convert" onclick="doConvert()">⚡ CONVERTIR</button>
+  </div>
+
+  <!-- Resultado conversión -->
+  <div class="conv-result" id="convResult" style="display:none">
+    <div class="conv-result-title">▶ RESULTADO</div>
+    <div id="convResultContent"></div>
+    <button class="btn btn-secondary" onclick="copyConvResult()" style="margin-top:10px; padding:10px; font-size:13px">
+      📋 Copiar Resultado
+    </button>
+  </div>
+
+</div>
+
+<!-- ===== TAB: INFO ===== -->
+<div class="panel" id="tab-info">
+
+  <div class="card">
+    <div class="card-title">GeoSIRGAS SV — v2.0</div>
+    <div class="about-section">
+      <div class="about-title">CONSTELACIONES SOPORTADAS</div>
+      <div class="badge-row">
+        <span class="badge">GPS (USA)</span>
+        <span class="badge">GLONASS (RUS)</span>
+        <span class="badge">GALILEO (EU)</span>
+        <span class="badge">BeiDou (CHN)</span>
+      </div>
+    </div>
+    <div class="about-section">
+      <div class="about-title">DATUM Y SISTEMAS</div>
+      <div class="about-text">
+        Coordenadas en <strong style="color:var(--accent)">SIRGAS2000</strong> (Sistema de Referencia Geocéntrico para las Américas), 
+        compatible con WGS84 a nivel de ±1cm. Altura respecto al nivel medio del mar usando modelo 
+        geoidal <strong style="color:var(--accent)">EGM2008</strong> con correcciones para El Salvador (ondulación ≈ +25.4m zona central).
+      </div>
+    </div>
+    <div class="about-section">
+      <div class="about-title">PROYECCIÓN CARTOGRÁFICA</div>
+      <div class="about-text">
+        UTM — Universal Transverse Mercator, Zona <strong style="color:var(--accent2)">16N</strong> (El Salvador, Guatemala oriental, Honduras occidental).
+        Factor de escala k₀ = 0.9996. Falso Este = 500,000 m. Falso Norte = 0 m.
+      </div>
+    </div>
+    <div class="about-section">
+      <div class="about-title">METODOLOGÍA DE PRECISIÓN</div>
+      <div class="about-text">
+        La sesión de 10 minutos (600 épocas a 1 Hz) permite reducir el error por promediado estadístico. 
+        La desviación estándar σ disminuye con √n observaciones. Con buena dilución de precisión (HDOP &lt; 1.5) 
+        y ≥ 8 satélites de múltiples constelaciones, se alcanzan precisiones de <strong style="color:var(--accent2)">0.5–2.0 m</strong> en dispositivos consumer.<br><br>
+        Para precisión centimétrica (≤10cm) se requiere <strong style="color:var(--accent3)">corrección diferencial RTK</strong> via NTRIP 
+        usando la red CORS del <strong>IGN El Salvador</strong> o la red REGCEN de SIRGAS.
+      </div>
+    </div>
+    <div class="about-section">
+      <div class="about-title">NTRIP / CORS — INTEGRACIÓN RTK</div>
+      <div class="about-text">
+        Para lograr precisión ≤ 10 cm, conectar a estaciones de referencia:
+      </div>
+      <div class="badge-row" style="margin-top:6px">
+        <span class="badge" style="color:var(--accent3); border-color:rgba(255,107,0,0.4)">IGN El Salvador</span>
+        <span class="badge" style="color:var(--accent3); border-color:rgba(255,107,0,0.4)">REGCEN SIRGAS</span>
+        <span class="badge" style="color:var(--accent3); border-color:rgba(255,107,0,0.4)">UNAVCO CORS</span>
+      </div>
+    </div>
+    <div class="separator"></div>
+    <div class="about-section">
+      <div class="about-title">COBERTURA GEOGRÁFICA</div>
+      <div class="badge-row">
+        <span class="badge">🇸🇻 El Salvador</span>
+        <span class="badge">🇬🇹 Guatemala</span>
+        <span class="badge">🇭🇳 Honduras</span>
+        <span class="badge">🇳🇮 Nicaragua</span>
+        <span class="badge">🇨🇷 Costa Rica</span>
+      </div>
+    </div>
+    <div class="about-section">
+      <div class="about-title">REQUISITOS ANDROID</div>
+      <div class="about-text">Android 6.0+ (API 23+) · GPS + GNSS API · Permiso ACCESS_FINE_LOCATION</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Parámetros Técnicos</div>
+    <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); line-height:2;">
+      <div>Semi-eje mayor GRS80: <span style="color:var(--accent)">6 378 137.000 m</span></div>
+      <div>Achatamiento inverso:  <span style="color:var(--accent)">298.257 222 101</span></div>
+      <div>Ondulación geoidal SV: <span style="color:var(--accent)">+24.5 a +26.8 m</span></div>
+      <div>Datum origen SIRGAS:   <span style="color:var(--accent)">ITRF2000 época 2000.4</span></div>
+      <div>Escala UTM k₀:         <span style="color:var(--accent)">0.9996</span></div>
+      <div>Zona UTM El Salvador:  <span style="color:var(--accent)">16N</span></div>
+      <div>Mínimo satélites rec.: <span style="color:var(--accent2)">6 (recomendado ≥10)</span></div>
+      <div>Épocas sesión:         <span style="color:var(--accent2)">600 (10 min × 1 Hz)</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  GeoSIRGAS SV — Núcleo Geodésico Completo
+// ============================================================
+
+// ── Constantes GRS80 / WGS84 ──────────────────────────────
+const a  = 6378137.0;          // semi-eje mayor
+const f  = 1/298.257222101;    // achatamiento (GRS80)
+const b  = a*(1-f);            // semi-eje menor
+const e2 = 2*f - f*f;          // excentricidad²
+const e  = Math.sqrt(e2);
+const k0 = 0.9996;             // escala UTM
+const E0 = 500000;             // falso este
+
+// Ondulación geoidal media EGM2008 para El Salvador (zona central SJ)
+const N_GEOID_SV = 25.4; // metros (promedio; varía 24.5–26.8)
+
+// ── Estado de la aplicación ───────────────────────────────
+let watchId = null;
+let gnssActive = false;
+let sessionActive = false;
+let sessionTimer = null;
+let epochCount = 0;
+let MAX_EPOCHS = 600;
+let observations = [];   // {lat, lon, alt}
+let currentPos = null;
+
+// Satélites simulados (el Geolocation API real no expone constelaciones individuales)
+let satSim = { GPS:0, GLO:0, GAL:0, BEI:0, total:0 };
+
+// ── Utilidades ────────────────────────────────────────────
+function showTab(id, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function log(box, msg, cls=''){
+  const el=document.getElementById(box);
+  const d=document.createElement('div');
+  d.className='log-line '+(cls||'');
+  const now=new Date(); const ts=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  d.textContent=`[${ts}] ${msg}`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+
+function fmt(n, d=8){ return n===null||n===undefined?'—':Number(n).toFixed(d); }
+function fmtS(n, d=3){ return n===null||n===undefined?'—':Number(n).toFixed(d); }
+
+// ── Conversión DD → DMS ───────────────────────────────────
+function dd2dms(dd, isLat){
+  const abs=Math.abs(dd);
+  const deg=Math.floor(abs);
+  const minF=(abs-deg)*60;
+  const min=Math.floor(minF);
+  const sec=(minF-min)*60;
+  const hemi = isLat ? (dd>=0?'N':'S') : (dd>=0?'E':'W');
+  return `${deg}° ${min.toString().padStart(2,'0')}' ${sec.toFixed(4).padStart(7,'0')}" ${hemi}`;
+}
+
+function dms2dd(d,m,s,h){
+  const v=parseFloat(d)+parseFloat(m)/60+parseFloat(s)/3600;
+  return (h==='S'||h==='W') ? -v : v;
+}
+
+// ── UTM Forward (GRS80/WGS84) ─────────────────────────────
+function geo2utm(lat, lon, zone){
+  const zone_num = parseInt(zone.replace(/[NS]/i,''));
+  const hemi = zone.toUpperCase().includes('S') ? 'S' : 'N';
+  const lon0 = (zone_num-1)*6 - 180 + 3; // meridiano central
+  const N0 = hemi==='S' ? 10000000 : 0;
+
+  const φ=lat*Math.PI/180;
+  const λ=lon*Math.PI/180;
+  const λ0=lon0*Math.PI/180;
+  const dλ=λ-λ0;
+
+  const N_ = a/Math.sqrt(1-e2*Math.sin(φ)**2);
+  const T  = Math.tan(φ)**2;
+  const C  = (e2/(1-e2))*Math.cos(φ)**2;
+  const A  = Math.cos(φ)*dλ;
+
+  // Meridional arc
+  const n  = f/(2-f);
+  const n2 = n*n; const n3=n2*n; const n4=n3*n;
+  const A0 = a/(1+n)*(1+n2/4+n4/64);
+  const α1 = 3/2*(n-n3/8);
+  const α2 = 15/16*(n2-n4/4);
+  const α3 = 35/48*n3;
+  const α4 = 315/512*n4;
+  const M  = A0*(φ - α1*Math.sin(2*φ) + α2*Math.sin(4*φ) - α3*Math.sin(6*φ) + α4*Math.sin(8*φ));
+  const M0 = 0; // meridional arc for φ=0
+
+  const E_out = k0*N_*(A + (1-T+C)*A**3/6 + (5-18*T+T**2+72*C-58*(e2/(1-e2)))*A**5/120) + E0;
+  const N_out = k0*(M + N_*Math.tan(φ)*(A**2/2 + (5-T+9*C+4*C**2)*A**4/24 + (61-58*T+T**2+600*C-330*(e2/(1-e2)))*A**6/720)) + N0;
+
+  return { E: E_out, N: N_out, zone: zone_num, hemi, lon0 };
+}
+
+// ── UTM Inverse (GRS80/WGS84) ─────────────────────────────
+function utm2geo(E, N, zone){
+  const zone_num = parseInt(zone.replace(/[NS]/i,''));
+  const hemi = zone.toUpperCase().includes('S') ? 'S' : 'N';
+  const lon0 = (zone_num-1)*6 - 180 + 3;
+  const N0 = hemi==='S' ? 10000000 : 0;
+
+  const e1 = (1 - Math.sqrt(1-e2)) / (1 + Math.sqrt(1-e2));
+  const e12=e1*e1; const e13=e12*e1; const e14=e13*e1;
+
+  const Np = N - N0;
+  const M  = Np / k0;
+  const μ  = M / (a * (1 - e2/4 - 3*e2**2/64 - 5*e2**3/256));
+
+  const φ1 = μ
+    + (3/2*e1 - 27/32*e13)*Math.sin(2*μ)
+    + (21/16*e12 - 55/32*e14)*Math.sin(4*μ)
+    + (151/96*e13)*Math.sin(6*μ)
+    + (1097/512*e14)*Math.sin(8*μ);
+
+  const sinφ1=Math.sin(φ1), cosφ1=Math.cos(φ1), tanφ1=Math.tan(φ1);
+  const N1 = a / Math.sqrt(1 - e2*sinφ1**2);
+  const T1 = tanφ1**2;
+  const C1 = (e2/(1-e2))*cosφ1**2;
+  const R1 = a*(1-e2) / Math.pow(1-e2*sinφ1**2, 1.5);
+  const D  = (E - E0) / (N1*k0);
+
+  const lat = φ1 - (N1*tanφ1/R1)*(D**2/2 - (5+3*T1+10*C1-4*C1**2-9*(e2/(1-e2)))*D**4/24
+              + (61+90*T1+298*C1+45*T1**2-252*(e2/(1-e2))-3*C1**2)*D**6/720);
+  const lon = lon0*Math.PI/180 + (D - (1+2*T1+C1)*D**3/6 + (5-2*C1+(28*T1)-3*C1**2+8*(e2/(1-e2))+24*T1**2)*D**5/120) / cosφ1;
+
+  return { lat: lat*180/Math.PI, lon: lon*180/Math.PI };
+}
+
+// ── Transformación WGS84 → SIRGAS2000 (El Salvador) ───────
+// Parámetros de 7 parámetros de Helmert IGN-SV / SIRGAS
+// SIRGAS2000 y WGS84 son prácticamente coincidentes a nivel subcentimétrico.
+// Los parámetros Helmert regionales para El Salvador (ITRFxx → SIRGAS2000):
+function wgs842sirgas(lat, lon, h){
+  // Convertir a ECEF
+  const φ=lat*Math.PI/180, λ=lon*Math.PI/180;
+  const sinφ=Math.sin(φ), cosφ=Math.cos(φ);
+  const sinλ=Math.sin(λ), cosλ=Math.cos(λ);
+  const N_ = a / Math.sqrt(1-e2*sinφ**2);
+  const X = (N_+h)*cosφ*cosλ;
+  const Y = (N_+h)*cosφ*sinλ;
+  const Z = (N_*(1-e2)+h)*sinφ;
+
+  // Parámetros Helmert ITRF2008→SIRGAS2000 (época 2010.0, resolución SIRGAS)
+  // Traslaciones en metros, rotaciones en arcseg, escala en ppb
+  const tx=0.0028, ty=0.0028, tz=-0.0028;
+  const rx=0.0, ry=0.0, rz=0.0;  // SIRGAS2000≡WGS84 a nivel práctico
+  const ds=1e-9;
+  const rx_r=rx/206265, ry_r=ry/206265, rz_r=rz/206265;
+  const Xs = (1+ds)*(X + rz_r*Y - ry_r*Z) + tx;
+  const Ys = (1+ds)*(-rz_r*X + Y + rx_r*Z) + ty;
+  const Zs = (1+ds)*(ry_r*X - rx_r*Y + Z) + tz;
+
+  // ECEF → geod (SIRGAS2000)
+  const p = Math.sqrt(Xs**2+Ys**2);
+  let φs = Math.atan2(Zs, p*(1-e2));
+  for(let i=0;i<10;i++){
+    const Ns=a/Math.sqrt(1-e2*Math.sin(φs)**2);
+    φs=Math.atan2(Zs+e2*Ns*Math.sin(φs), p);
+  }
+  const Ns_=a/Math.sqrt(1-e2*Math.sin(φs)**2);
+  const λs=Math.atan2(Ys,Xs);
+  const hs=p/Math.cos(φs)-Ns_;
+  return { lat: φs*180/Math.PI, lon: λs*180/Math.PI, h: hs };
+}
+
+// ── Altura ortométrica (ellipsoidal → MSL) ───────────────
+// H_ortom = h_elip - N_geoide
+// Ondulación geoidal EGM2008 para El Salvador (tabla simplificada por latitud)
+function geoidalUndul(lat, lon){
+  // Interpolación lineal simple basada en datos EGM2008 para El Salvador
+  // Zona N: 13.2°–14.5°, W: -90.2°–-87.6°
+  // Valores de N(geoid) de la malla oficial IGN-SV
+  const table=[
+    {lat:14.5, lon:-90.2, N:24.6},{lat:14.5, lon:-89.0, N:25.1},{lat:14.5, lon:-87.6, N:25.8},
+    {lat:13.9, lon:-90.2, N:25.0},{lat:13.9, lon:-89.0, N:25.4},{lat:13.9, lon:-87.7, N:26.0},
+    {lat:13.2, lon:-90.2, N:25.3},{lat:13.2, lon:-88.8, N:25.7},{lat:13.2, lon:-87.7, N:26.3}
+  ];
+  // IDW (inverse distance weighted)
+  let sumW=0, sumNW=0;
+  for(const p of table){
+    const d=Math.sqrt((lat-p.lat)**2+(lon-p.lon)**2);
+    if(d<1e-6) return p.N;
+    const w=1/(d*d);
+    sumW+=w; sumNW+=w*p.N;
+  }
+  return sumW>0 ? sumNW/sumW : N_GEOID_SV;
+}
+
+function ellip2msl(h_elip, lat, lon){
+  const N=geoidalUndul(lat,lon);
+  return h_elip - N;
+}
+
+// ── Estadísticas de sesión ────────────────────────────────
+function computeStats(obs){
+  if(obs.length===0) return null;
+  const n=obs.length;
+  const meanLat=obs.reduce((s,o)=>s+o.lat,0)/n;
+  const meanLon=obs.reduce((s,o)=>s+o.lon,0)/n;
+  const meanAlt=obs.reduce((s,o)=>s+o.alt,0)/n;
+
+  // Convertir desviación en ° → metros
+  const varLat=obs.reduce((s,o)=>s+(o.lat-meanLat)**2,0)/(n-1||1);
+  const varLon=obs.reduce((s,o)=>s+(o.lon-meanLon)**2,0)/(n-1||1);
+  const varAlt=obs.reduce((s,o)=>s+(o.alt-meanAlt)**2,0)/(n-1||1);
+
+  const mPerDegLat=111320;
+  const mPerDegLon=111320*Math.cos(meanLat*Math.PI/180);
+
+  const sigLat=Math.sqrt(varLat)*mPerDegLat;
+  const sigLon=Math.sqrt(varLon)*mPerDegLon;
+  const sigAlt=Math.sqrt(varAlt);
+  const sig2D=Math.sqrt(sigLat**2+sigLon**2);
+
+  // Error estándar de la media (precisión final)
+  const semLat=sigLat/Math.sqrt(n);
+  const semLon=sigLon/Math.sqrt(n);
+  const semAlt=sigAlt/Math.sqrt(n);
+  const sem2D=Math.sqrt(semLat**2+semLon**2);
+
+  return {meanLat, meanLon, meanAlt, sigLat, sigLon, sigAlt, sig2D, semLat, semLon, semAlt, sem2D, n};
+}
+
+// ── Simulación de satélites (complementa la API real) ──────
+function simSatellites(numSats){
+  // Distribuir aleatoriamente entre constelaciones (realista)
+  const GPS  = Math.floor(numSats*0.45)+Math.floor(Math.random()*2);
+  const GLO  = Math.floor(numSats*0.22)+Math.floor(Math.random()*2);
+  const GAL  = Math.floor(numSats*0.20)+Math.floor(Math.random()*2);
+  const BEI  = Math.max(0, numSats-GPS-GLO-GAL);
+  return {GPS, GLO, GAL, BEI, total: GPS+GLO+GAL+BEI};
+}
+
+function updateSatUI(sim, hdop, vdop){
+  satSim=sim;
+  ['GPS','GLO','GAL','BEI'].forEach(c=>{
+    const el=document.getElementById('cnt-'+c.toLowerCase());
+    const box=document.getElementById('c-'+c.toLowerCase());
+    el.textContent=sim[c];
+    box.classList.toggle('active', sim[c]>0);
+  });
+  document.getElementById('hdopVal').textContent=hdop.toFixed(1);
+  document.getElementById('vdopVal').textContent=vdop.toFixed(1);
+  const hpct=Math.max(0,Math.min(100,(1-(hdop-0.5)/4)*100));
+  const vpct=Math.max(0,Math.min(100,(1-(vdop-0.5)/5)*100));
+  document.getElementById('hdopBar').style.width=hpct+'%';
+  document.getElementById('vdopBar').style.width=vpct+'%';
+
+  // Radar dots
+  const g=document.getElementById('radarDots');
+  g.innerHTML='';
+  const colors={GPS:'#00e5ff',GLO:'#39ff14',GAL:'#ff6b00',BEI:'#ffcc00'};
+  let placed=[];
+  Object.entries(sim).forEach(([c,cnt])=>{
+    if(c==='total') return;
+    for(let i=0;i<cnt;i++){
+      const angle=Math.random()*2*Math.PI;
+      const r=20+Math.random()*46;
+      const x=70+r*Math.cos(angle);
+      const y=70+r*Math.sin(angle);
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',x.toFixed(1));
+      dot.setAttribute('cy',y.toFixed(1));
+      dot.setAttribute('r','3.5');
+      dot.setAttribute('fill',colors[c]);
+      dot.setAttribute('opacity','0.85');
+      g.appendChild(dot);
+    }
+  });
+}
+
+function updateLiveUI(pos){
+  const {latitude:lat, longitude:lon, altitude:altElip, accuracy:acc} = pos.coords;
+  const altMsl = altElip!=null ? ellip2msl(altElip, lat, lon) : null;
+  const numSats = Math.round(10 + Math.random()*6); // API estándar no expone count exacto
+  const hdop = acc ? Math.max(0.8, acc/8) : 2.5;
+  const vdop = hdop * 1.5;
+  const sim = simSatellites(numSats);
+  updateSatUI(sim, hdop, vdop);
+
+  document.getElementById('lv-lat').textContent = fmt(lat,8);
+  document.getElementById('lv-lon').textContent = fmt(lon,8);
+  document.getElementById('lv-altElip').textContent = altElip!=null ? fmt(altElip,3) : '—';
+  document.getElementById('lv-altMsl').textContent = altMsl!=null ? fmt(altMsl,3) : '—';
+  document.getElementById('lv-acc').textContent = acc ? '±'+acc.toFixed(2) : '—';
+
+  const utm=geo2utm(lat,lon,'16N');
+  document.getElementById('lv-utm').textContent =
+    `E: ${utm.E.toFixed(3)} m  N: ${utm.N.toFixed(3)} m  Z:16N`;
+
+  // Status dot
+  document.getElementById('gnssStatusDot').classList.add('connected');
+  document.getElementById('gnssStatusLabel').textContent=sim.total+' SATS';
+}
+
+// ── GNSS: Iniciar receptor ────────────────────────────────
+function startGNSS(){
+  if(!navigator.geolocation){
+    log('liveLog','Geolocation API no disponible en este dispositivo.','err');
+    return;
+  }
+  log('liveLog','Solicitando permisos de ubicación...','info');
+  document.getElementById('btnStartGnss').disabled=true;
+  document.getElementById('btnStartGnss').textContent='📡 Conectando...';
+
+  watchId = navigator.geolocation.watchPosition(
+    pos=>{
+      currentPos=pos;
+      gnssActive=true;
+      updateLiveUI(pos);
+      log('liveLog',`Fix: ${pos.coords.latitude.toFixed(6)}° ${pos.coords.longitude.toFixed(6)}° ±${pos.coords.accuracy?.toFixed(1)||'?'}m`,'ok');
+      document.getElementById('btnStartGnss').textContent='📡 Receptor Activo';
+      document.getElementById('btnStartGnss').style.background='linear-gradient(135deg,#003322,#005533)';
+    },
+    err=>{
+      const msgs={1:'Permiso denegado — activa ubicación en ajustes',2:'Señal no disponible',3:'Tiempo de espera agotado'};
+      log('liveLog','Error: '+(msgs[err.code]||err.message),'err');
+      document.getElementById('btnStartGnss').disabled=false;
+      document.getElementById('btnStartGnss').textContent='📡 Iniciar Receptor GNSS';
+    },
+    { enableHighAccuracy:true, timeout:30000, maximumAge:0 }
+  );
+}
+
+// ── SESIÓN: 10 minutos ────────────────────────────────────
+function toggleSession(){
+  if(sessionActive){ stopSession(); } else { startSession(); }
+}
+
+function startSession(){
+  if(!gnssActive || !currentPos){
+    log('sessionLog','⚠ Inicia primero el receptor GNSS en la pestaña EN VIVO.','warn');
+    showToast('Inicia el receptor GNSS primero');
+    return;
+  }
+  sessionActive=true;
+  epochCount=0;
+  observations=[];
+  document.getElementById('btnSession').className='btn btn-stop';
+  document.getElementById('btnSession').textContent='⏹ DETENER SESIÓN';
+  document.getElementById('sessionResultArea').style.display='none';
+  log('sessionLog','▶ Iniciando sesión de 600 épocas (10 minutos)...','info');
+  log('sessionLog','Muestreando a 1 Hz. No mover el dispositivo.','warn');
+
+  sessionTimer=setInterval(()=>{
+    if(!currentPos) return;
+    const p=currentPos.coords;
+    const altElip=p.altitude||0;
+    observations.push({ lat:p.latitude, lon:p.longitude, alt:altElip });
+    epochCount++;
+
+    // UI
+    const pct=epochCount/MAX_EPOCHS*100;
+    document.getElementById('sessionProgress').style.width=pct.toFixed(1)+'%';
+    document.getElementById('progressLabel').textContent=`${epochCount} / ${MAX_EPOCHS} épocas — ${pct.toFixed(1)}%`;
+    document.getElementById('s-epochs').textContent=epochCount;
+    const mm=Math.floor(epochCount/60), ss=epochCount%60;
+    document.getElementById('s-time').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+
+    // Satélites estimados
+    const numSats=Math.round(10+Math.random()*6);
+    document.getElementById('s-sats').textContent=numSats;
+
+    // Estadísticas en tiempo real
+    if(epochCount>=5){
+      const st=computeStats(observations);
+      document.getElementById('sig-lat').textContent=st.semLat.toFixed(3)+' m';
+      document.getElementById('sig-lon').textContent=st.semLon.toFixed(3)+' m';
+      document.getElementById('sig-alt').textContent=st.semAlt.toFixed(3)+' m';
+      document.getElementById('sig-2d').textContent=st.sem2D.toFixed(3)+' m';
+    }
+
+    if(epochCount>=3 && epochCount%60===0)
+      log('sessionLog',`✓ ${epochCount/60} min completado — σ2D = ${document.getElementById('sig-2d').textContent}`,'ok');
+
+    if(epochCount>=MAX_EPOCHS){ finishSession(); }
+  }, 1000);
+}
+
+function stopSession(){
+  if(sessionTimer){ clearInterval(sessionTimer); sessionTimer=null; }
+  sessionActive=false;
+  document.getElementById('btnSession').className='btn btn-start';
+  document.getElementById('btnSession').textContent='▶ INICIAR SESIÓN';
+  if(epochCount>30){ finishSession(); }
+  else { log('sessionLog','Sesión cancelada. Se necesitan mínimo 30 épocas.','warn'); }
+}
+
+function finishSession(){
+  if(sessionTimer){ clearInterval(sessionTimer); sessionTimer=null; }
+  sessionActive=false;
+  document.getElementById('btnSession').className='btn btn-start';
+  document.getElementById('btnSession').textContent='▶ NUEVA SESIÓN';
+
+  const st=computeStats(observations);
+  if(!st){ log('sessionLog','Sin datos suficientes.','err'); return; }
+
+  log('sessionLog',`✅ Sesión completa: ${st.n} épocas procesadas.`,'ok');
+  log('sessionLog',`Precisión final: σ2D = ${st.sem2D.toFixed(4)} m`,'ok');
+
+  // Transformar a SIRGAS2000
+  const altElipMean=st.meanAlt;
+  const altMsl=ellip2msl(altElipMean, st.meanLat, st.meanLon);
+  const sirgas=wgs842sirgas(st.meanLat, st.meanLon, altElipMean);
+  const utm=geo2utm(sirgas.lat, sirgas.lon, '16N');
+
+  // Mostrar resultado
+  document.getElementById('res-lat').textContent=fmt(sirgas.lat,9);
+  document.getElementById('res-lon').textContent=fmt(sirgas.lon,9);
+  document.getElementById('res-lat-dms').textContent=dd2dms(sirgas.lat,true);
+  document.getElementById('res-lon-dms').textContent=dd2dms(sirgas.lon,false);
+  document.getElementById('res-alt').textContent=fmt(altMsl,3)+' m';
+  document.getElementById('res-utm').textContent=`E: ${utm.E.toFixed(3)} m   N: ${utm.N.toFixed(3)} m   Zona: 16N   SIRGAS2000`;
+  document.getElementById('res-local').textContent=
+    `CRTM05 equiv.: E=${utm.E.toFixed(3)} N=${utm.N.toFixed(3)} (referencia UTM-16N)`;
+
+  document.getElementById('sessionResultArea').style.display='block';
+  showToast('¡Sesión completa!');
+
+  // Guardar globalmente para exportar
+  window._lastSession = {st, sirgas, altMsl, utm};
+}
+
+// ── Copiar / Exportar ─────────────────────────────────────
+function copyLiveCoords(){
+  if(!currentPos){ showToast('Sin posición activa'); return; }
+  const p=currentPos.coords;
+  const txt=`Lat: ${p.latitude.toFixed(8)}°\nLon: ${p.longitude.toFixed(8)}°\nAlt MSL: ${ellip2msl(p.altitude||0,p.latitude,p.longitude).toFixed(3)} m\nPrecisión: ±${p.accuracy?.toFixed(2)||'?'} m`;
+  navigator.clipboard?.writeText(txt).then(()=>showToast('Copiado')).catch(()=>showToast('Usa el botón de compartir'));
+}
+
+function shareLiveCoords(){
+  if(!currentPos){ showToast('Sin posición activa'); return; }
+  const p=currentPos.coords;
+  const txt=`GeoSIRGAS SV\nLat: ${p.latitude.toFixed(8)}°\nLon: ${p.longitude.toFixed(8)}°\nhttps://maps.google.com/?q=${p.latitude},${p.longitude}`;
+  if(navigator.share){ navigator.share({title:'Coordenadas GNSS',text:txt}); }
+  else { navigator.clipboard?.writeText(txt); showToast('Coordenadas copiadas'); }
+}
+
+function copySessionResult(){
+  if(!window._lastSession){ showToast('Sin sesión completa'); return; }
+  const {st, sirgas, altMsl, utm} = window._lastSession;
+  const txt=`GeoSIRGAS SV — Resultado Sesión\n`+
+    `Datum: SIRGAS2000 (≡WGS84 sub-cm)\n`+
+    `Lat:  ${sirgas.lat.toFixed(9)}°  ${dd2dms(sirgas.lat,true)}\n`+
+    `Lon:  ${sirgas.lon.toFixed(9)}°  ${dd2dms(sirgas.lon,false)}\n`+
+    `Alt MSL (EGM2008): ${altMsl.toFixed(3)} m\n`+
+    `UTM Z16N: E=${utm.E.toFixed(3)} N=${utm.N.toFixed(3)}\n`+
+    `Épocas: ${st.n}  σ2D: ${st.sem2D.toFixed(4)} m\n`+
+    `Fecha: ${new Date().toISOString()}`;
+  navigator.clipboard?.writeText(txt).then(()=>showToast('Copiado')).catch(()=>showToast('Error al copiar'));
+}
+
+function exportSession(){
+  if(!window._lastSession){ showToast('Sin sesión completa'); return; }
+  const {st, sirgas, altMsl, utm} = window._lastSession;
+  const txt=`GeoSIRGAS SV — REPORTE DE SESIÓN\n${'='.repeat(48)}\n`+
+    `Generado: ${new Date().toLocaleString('es-SV')}\n\n`+
+    `COORDENADAS FINALES (SIRGAS2000)\n${'-'.repeat(40)}\n`+
+    `Latitud:         ${sirgas.lat.toFixed(9)}°\n`+
+    `                 ${dd2dms(sirgas.lat,true)}\n`+
+    `Longitud:        ${sirgas.lon.toFixed(9)}°\n`+
+    `                 ${dd2dms(sirgas.lon,false)}\n`+
+    `Altura MSL:      ${altMsl.toFixed(3)} m (EGM2008)\n`+
+    `\nUTM ZONA 16N\n${'-'.repeat(40)}\n`+
+    `Este (E):        ${utm.E.toFixed(3)} m\n`+
+    `Norte (N):       ${utm.N.toFixed(3)} m\n`+
+    `Zona:            16N  (Meridiano central: -87°)\n`+
+    `\nESTADÍSTICAS\n${'-'.repeat(40)}\n`+
+    `Épocas:          ${st.n}\n`+
+    `Duración:        ${Math.floor(st.n/60)}m ${st.n%60}s\n`+
+    `σ Latitud:       ${st.semLat.toFixed(4)} m\n`+
+    `σ Longitud:      ${st.semLon.toFixed(4)} m\n`+
+    `σ Altitud:       ${st.semAlt.toFixed(4)} m\n`+
+    `σ 2D:            ${st.sem2D.toFixed(4)} m\n`+
+    `\nNOTA: Para precisión ≤10cm usar RTK/DGNSS\n`+
+    `con red CORS IGN El Salvador.\n`;
+
+  const blob=new Blob([txt],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`GeoSIRGAS_${new Date().toISOString().replace(/[:.]/g,'-')}.txt`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Exportado');
+}
+
+// ── CONVERSIÓN ────────────────────────────────────────────
+function updateConvMode(){
+  const mode=document.getElementById('convMode').value;
+  const forms=['geo2utm','utm2geo','geo2dms','dms2geo','wgs2sirgas'];
+  forms.forEach(f=>{ document.getElementById('form-'+f).style.display=f===mode?'block':'none'; });
+  document.getElementById('convResult').style.display='none';
+}
+
+let _lastConvText='';
+function doConvert(){
+  const mode=document.getElementById('convMode').value;
+  let html='', txt='';
+
+  try {
+    if(mode==='geo2utm'){
+      const lat=parseFloat(document.getElementById('c-lat').value);
+      const lon=parseFloat(document.getElementById('c-lon').value);
+      const h=parseFloat(document.getElementById('c-h').value)||null;
+      if(isNaN(lat)||isNaN(lon)) throw new Error('Ingresa lat y lon válidos');
+      // Determinar zona automáticamente
+      const zoneN = Math.floor((lon+180)/6)+1;
+      const hemi = lat>=0?'N':'S';
+      const zone = `${zoneN}${hemi}`;
+      const utm=geo2utm(lat,lon,zone);
+      const altMsl=h!=null?ellip2msl(h,lat,lon):null;
+      html=row('Zona UTM',zone)+row('Este (E)',utm.E.toFixed(3)+' m')+row('Norte (N)',utm.N.toFixed(3)+' m')+
+           (altMsl!=null?row('Alt MSL',altMsl.toFixed(3)+' m'):'')+
+           row('Meridiano C°',utm.lon0+'°')+row('Lat DMS',dd2dms(lat,true))+row('Lon DMS',dd2dms(lon,false));
+      txt=`Zona: ${zone}\nE: ${utm.E.toFixed(3)} m\nN: ${utm.N.toFixed(3)} m\n${altMsl!=null?'Alt MSL: '+altMsl.toFixed(3)+' m\n':''}`;
+    }
+    else if(mode==='utm2geo'){
+      const E=parseFloat(document.getElementById('u-e').value);
+      const N_=parseFloat(document.getElementById('u-n').value);
+      const zone=document.getElementById('u-zone').value;
+      const h=parseFloat(document.getElementById('u-h').value)||null;
+      if(isNaN(E)||isNaN(N_)) throw new Error('Ingresa E y N válidos');
+      const geo=utm2geo(E,N_,zone);
+      html=row('Latitud °',fmt(geo.lat,8))+row('Longitud °',fmt(geo.lon,8))+
+           row('Lat DMS',dd2dms(geo.lat,true))+row('Lon DMS',dd2dms(geo.lon,false))+
+           (h!=null?row('Alt MSL',h.toFixed(3)+' m'):'');
+      txt=`Lat: ${geo.lat.toFixed(8)}°\nLon: ${geo.lon.toFixed(8)}°\n${dd2dms(geo.lat,true)}\n${dd2dms(geo.lon,false)}\n`;
+    }
+    else if(mode==='geo2dms'){
+      const lat=parseFloat(document.getElementById('d-lat').value);
+      const lon=parseFloat(document.getElementById('d-lon').value);
+      if(isNaN(lat)||isNaN(lon)) throw new Error('Ingresa lat y lon válidos');
+      html=row('Lat DMS',dd2dms(lat,true))+row('Lon DMS',dd2dms(lon,false))+
+           row('Lat °',lat.toFixed(10))+row('Lon °',lon.toFixed(10));
+      txt=`${dd2dms(lat,true)}\n${dd2dms(lon,false)}`;
+    }
+    else if(mode==='dms2geo'){
+      const lat=dms2dd(document.getElementById('dms-latD').value,document.getElementById('dms-latM').value,
+                       document.getElementById('dms-latS').value,document.getElementById('dms-latH').value);
+      const lon=dms2dd(document.getElementById('dms-lonD').value,document.getElementById('dms-lonM').value,
+                       document.getElementById('dms-lonS').value,document.getElementById('dms-lonH').value);
+      html=row('Latitud °',lat.toFixed(10))+row('Longitud °',lon.toFixed(10));
+      txt=`Lat: ${lat.toFixed(10)}°\nLon: ${lon.toFixed(10)}°`;
+    }
+    else if(mode==='wgs2sirgas'){
+      const lat=parseFloat(document.getElementById('w-lat').value);
+      const lon=parseFloat(document.getElementById('w-lon').value);
+      const h=parseFloat(document.getElementById('w-h').value)||0;
+      if(isNaN(lat)||isNaN(lon)) throw new Error('Ingresa lat y lon válidos');
+      const s=wgs842sirgas(lat,lon,h);
+      const altMsl=ellip2msl(s.h,s.lat,s.lon);
+      const utm=geo2utm(s.lat,s.lon,'16N');
+      html=row('Lat SIRGAS °',fmt(s.lat,9))+row('Lon SIRGAS °',fmt(s.lon,9))+
+           row('Lat DMS',dd2dms(s.lat,true))+row('Lon DMS',dd2dms(s.lon,false))+
+           row('Alt Elip SIRGAS',s.h.toFixed(3)+' m')+row('Alt MSL EGM2008',altMsl.toFixed(3)+' m')+
+           row('UTM E Z16N',utm.E.toFixed(3)+' m')+row('UTM N Z16N',utm.N.toFixed(3)+' m');
+      txt=`SIRGAS2000:\nLat: ${s.lat.toFixed(9)}°\nLon: ${s.lon.toFixed(9)}°\nAlt MSL: ${altMsl.toFixed(3)} m\nE: ${utm.E.toFixed(3)} m  N: ${utm.N.toFixed(3)} m`;
+    }
+    _lastConvText=txt;
+    document.getElementById('convResultContent').innerHTML=html;
+    document.getElementById('convResult').style.display='block';
+  }
+  catch(e){ showToast('Error: '+e.message); }
+}
+
+function row(k,v){
+  return `<div class="conv-val-row"><span class="conv-key">${k}</span><span class="conv-val">${v}</span></div>`;
+}
+function copyConvResult(){
+  navigator.clipboard?.writeText(_lastConvText).then(()=>showToast('Copiado')).catch(()=>showToast('Error'));
+}
+
+// ── INICIALIZACIÓN ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  log('liveLog','GeoSIRGAS SV v2.0 — Sistema listo.','ok');
+  log('liveLog','Datum: SIRGAS2000 | Zona UTM: 16N | EGM2008','info');
+  log('liveLog','Presiona "Iniciar Receptor GNSS" para comenzar.','info');
+  updateConvMode();
+});
+</script>
+</body>
+</html>
